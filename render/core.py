@@ -377,7 +377,7 @@ def render(model, height, width, filename):
     """
     model_matrix = Mat4d([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
     view_matrix = look_at(Vec3d(0, 0, 10), Vec3d(0, 0, 0))
-    projection_matrix = perspective_project(0.5, 0.5, 2, 1000)
+    projection_matrix = perspective_project(0.5, 0.5, 3, 1000)
     mvp_matrix = projection_matrix * view_matrix * model_matrix
 
     vecs, indices = model.vecs, model.indices
