@@ -1,12 +1,22 @@
+import math
 import typing as t
+from functools import partial
 
 import numpy as np
 from copy import deepcopy
 from .canvas import Canvas
 
+# 2D part
+
 
 class Vec2d:
-    def __init__(self, x, y):
+    def __init__(self, *narr):
+        if len(narr) == 1 and isinstance(narr[0], Vec3d):
+            x, y = narr[0].x, narr[0].y
+        else:
+            assert len(narr) == 2
+            x, y = narr
+
         if isinstance(x, float):
             x = int(x + 0.5)
         if isinstance(y, float):
@@ -162,17 +172,18 @@ def line_clipping_2d(v1, v2, rect):  # noqa: C901
         return nv1, nv2
 
 
-def draw_triangle(v1, v2, v3, canvas, wireframe=False):
+def draw_triangle(v1, v2, v3, canvas, color, wireframe=False):
     """
     Draw a triangle with 3 ordered vertices
 
     http://www.sunshine2k.de/coding/java/TriangleRasterization/TriangleRasterization.html
     """
+    _draw_line = partial(draw_line, canvas=canvas, color=color)
 
     if wireframe:
-        draw_line(v1, v2)
-        draw_line(v2, v3)
-        draw_line(v1, v3)
+        _draw_line(v1, v2)
+        _draw_line(v2, v3)
+        _draw_line(v1, v3)
         return
 
     def sort_vertices_asc_by_y(vertices):
@@ -186,7 +197,7 @@ def draw_triangle(v1, v2, v3, canvas, wireframe=False):
         y = v1.y
 
         while y <= v2.y:
-            draw_line(Vec2d(int(x1 + 0.5), y), Vec2d(int(x2 + 0.5), y))
+            _draw_line(Vec2d(int(x1 + 0.5), y), Vec2d(int(x2 + 0.5), y))
             x1 += invslope1
             x2 += invslope2
             y += 1
@@ -199,7 +210,7 @@ def draw_triangle(v1, v2, v3, canvas, wireframe=False):
         y = v3.y
 
         while y > v2.y:
-            draw_line(Vec2d(int(x1 + 0.5), y), Vec2d(int(x2 + 0.5), y))
+            _draw_line(Vec2d(int(x1 + 0.5), y), Vec2d(int(x2 + 0.5), y))
             x1 -= invslope1
             x2 -= invslope2
             y -= 1
@@ -207,7 +218,9 @@ def draw_triangle(v1, v2, v3, canvas, wireframe=False):
     v1, v2, v3 = sort_vertices_asc_by_y((v1, v2, v3))
 
     # 填充
-    if v2.y == v3.y:
+    if v1.y == v2.y == v3.y:
+        pass
+    elif v2.y == v3.y:
         fill_bottom_flat_triangle(v1, v2, v3)
     elif v1.y == v2.y:
         fill_top_flat_triangle(v1, v2, v3)
@@ -232,17 +245,24 @@ def draw_polygon(*vertices):
 
 
 class Vec3d:
-    def __init__(self, *args, value=None):
+    def __init__(self, *narr, value=None):
         if value is not None:
             self.value = value
+        # for Vec4d cast
+        elif len(narr) == 1 and isinstance(narr[0], Vec4d):
+            vec4 = narr[0]
+            self.value = np.matrix([vec4.x, vec4.y, vec4.z])
         else:
-            assert len(args) == 3
-            self.value = np.matrix(args)
+            assert len(narr) == 3
+            self.value = np.matrix(narr)
 
         self.x, self.y, self.z = self.value[0, 0], self.value[0, 1], self.value[0, 2]
 
     def __repr__(self):
         return repr(self.value)
+
+    def __sub__(self, other):
+        return self.__class__(value=self.value - other.value)
 
 
 class Mat4d:
@@ -257,12 +277,14 @@ class Mat4d:
 
 
 class Vec4d(Mat4d):
-    def __init__(self, *args, value=None):
+    def __init__(self, *narr, value=None):
         if value is not None:
             self.value = value
+        elif len(narr) == 1 and isinstance(narr[0], Mat4d):
+            self.value = narr[0].value
         else:
-            assert len(args) == 4
-            self.value = np.matrix([[d] for d in args])
+            assert len(narr) == 4
+            self.value = np.matrix([[d] for d in narr])
 
         self.x, self.y, self.z, self.w = (
             self.value[0, 0],
@@ -270,6 +292,27 @@ class Vec4d(Mat4d):
             self.value[2, 0],
             self.value[3, 0],
         )
+
+
+# Math util
+def normalize(v):
+
+    unit = math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
+    return Vec3d(v.x / unit, v.y / unit, v.z / unit)
+
+
+def dot_product(x: Vec3d, y: Vec3d):
+    return x.x * y.x + x.y * y.y + x.z * y.z
+
+
+def cross_product(x: Vec3d, y: Vec3d):
+    return Vec3d(*np.cross(x.value, y.value)[0])
+
+
+def get_light_intensity(face) -> tuple:
+    light = Vec3d(0, 5, -10)
+    v1, v2, v3 = face
+    return dot_product(normalize(cross_product(v2 - v1, v3 - v1)), normalize(light))
 
 
 class MatrixUtil:
@@ -303,19 +346,9 @@ def look_at(eye: Vec3d, target: Vec3d, up: Vec3d = Vec3d(0, -1, 0)) -> Mat4d:
             https://stackoverflow.com/questions/10635947/what-exactly-is-the-up-vector-in-opengls-lookat-function
             这里默认使用了 0, -1, 0， 因为 blender 导出来的模型数据似乎有问题，导致y轴总是反的，于是把摄像机的up也翻一下得了。
     """
-
-    def normalize(v):
-        import math
-
-        unit = math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
-        return Vec3d(v.x / unit, v.y / unit, v.z / unit)
-
-    def dot_product(x: Vec3d, y: Vec3d):
-        return x.x * y.x + x.y * y.y + x.z * y.z
-
     f = normalize(Vec3d(value=eye.value - target.value))
-    l = normalize(Vec3d(*np.cross(up.value, f.value)[0]))  # noqa: E741
-    u = Vec3d(*np.cross(f.value, l.value)[0])
+    l = normalize(cross_product(up, f))  # noqa: E741
+    u = cross_product(f, l)
 
     rotate_matrix = Mat4d(
         [[l.x, l.y, l.z, 0], [u.x, u.y, u.z, 0], [f.x, f.y, f.z, 0], [0, 0, 0, 1.0]]
@@ -378,12 +411,13 @@ def render(model, height, width, filename):
     model_matrix = Mat4d([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
     view_matrix = look_at(Vec3d(0, 0, 10), Vec3d(0, 0, 0))
     projection_matrix = perspective_project(0.5, 0.5, 3, 1000)
-    mvp_matrix = projection_matrix * view_matrix * model_matrix
 
-    vecs, indices = model.vecs, model.indices
+    world_vertices = []
 
     def mvp(v):
-        return mvp_matrix * v
+        world_vertex = model_matrix * v
+        world_vertices.append(Vec4d(world_vertex))
+        return projection_matrix * view_matrix * world_vertex
 
     def ndc(v):
         """
@@ -407,14 +441,17 @@ def render(model, height, width, filename):
         )
 
     # this is the render pipeline
-    vecs = [viewport(ndc(mvp(v))) for v in vecs]
+    screen_vertices = [viewport(ndc(mvp(v))) for v in model.vertices]
 
     canvas = Canvas(height, width)
 
-    for index in indices:
-        v1, v2, v3 = [vecs[i - 1] for i in index]
-        draw_line(Vec2d(v1.x, v1.y), Vec2d(v2.x, v2.y), canvas=canvas)
-        draw_line(Vec2d(v2.x, v2.y), Vec2d(v3.x, v3.y), canvas=canvas)
-        draw_line(Vec2d(v3.x, v3.y), Vec2d(v1.x, v1.y), canvas=canvas)
+    for index_group in model.indices:
+        vertex_group = [Vec2d(screen_vertices[idx - 1]) for idx in index_group]
+        face = [Vec3d(world_vertices[i - 1]) for i in index_group]
+        intensity = get_light_intensity(face)
+        if intensity > 0:
+            draw_triangle(
+                *vertex_group, canvas=canvas, color=(int(intensity * 255),) * 3
+            )
 
     canvas.save(filename)
