@@ -14,5 +14,6 @@ Then open `monkey.png`!
 
 <img src="./monkey.png" alt="monkey" width="320" height="320">
 
+<img src="./monkey_light.png" alt="monkey" width="320" height="320">
 
  ✨🍰✨

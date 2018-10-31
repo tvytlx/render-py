@@ -37,7 +37,7 @@ def draw_line(
     v1: Vec2d, v2: Vec2d, canvas: Canvas, color: t.Union[tuple, str] = "white"
 ):
     """
-    画一条指定颜色的直线
+    Draw a line with a specified color
 
     https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
     """
@@ -400,7 +400,7 @@ def perspective_project(r, t, n, f, b=None, l=None):  # noqa: E741
     )
 
 
-def render(model, height, width, filename):
+def render(model, height, width, filename, wireframe=False):
     """
     Args:
         model: the Model object
@@ -432,8 +432,7 @@ def render(model, height, width, filename):
         v = Vec4d(value=v.value)
         x = y = 0
         w, h = width, height
-        n = 0.3
-        f = 1000
+        n, f = 0.3, 1000
         return Vec3d(
             w * 0.5 * v.x + x + w * 0.5,
             h * 0.5 * v.y + y + h * 0.5,
