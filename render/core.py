@@ -316,7 +316,7 @@ def cross_product(a: Vec3d, b: Vec3d):
 
 
 def get_light_intensity(face) -> tuple:
-    light = Vec3d(0, 5, -10)
+    light = Vec3d(-2, 4, -10)
     v1, v2, v3 = face
     return dot_product(normalize(cross_product(v2 - v1, v3 - v1)), normalize(light))
 
@@ -419,7 +419,7 @@ def draw_with_z_buffer(screen_vertices, world_vertices, model, canvas):
         # take of the class to let cython work
         triangles.append([v.arr for v in screen_vertices_of_triangle])
         # save the color message for each triangle face
-        colors.append((int(abs(intensity) * 200),) * 3)
+        colors.append((int(abs(intensity) * 255),) * 3)
     faces = speedup.generate_faces_with_z_buffer(triangles)
     for face_dots in faces:
         for dot in face_dots:
