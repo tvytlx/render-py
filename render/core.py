@@ -60,8 +60,8 @@ def draw_line(
     error: float = 0
     incr = 1 if v1.y < v2.y else -1
     dots = []
-    for x in range(v1.x, v2.x):
-        dots.append((y, x) if steep else (x, y))
+    for x in range(int(v1.x), int(v2.x + 0.5)):
+        dots.append((int(y + 0.5), x) if steep else (x, int(y + 0.5)))
         error += slope
         if abs(error) >= 0.5:
             y += incr
@@ -386,17 +386,20 @@ def perspective_project(r, t, n, f, b=None, l=None):  # noqa: E741
     )
 
 
-def draw(screen_vertices, world_vertices, model, canvas):
+def draw(screen_vertices, world_vertices, model, canvas, wireframe=True):
     """standard algorithm
     """
     for triangle_indices in model.indices:
         vertex_group = [screen_vertices[idx - 1] for idx in triangle_indices]
         face = [Vec3d(world_vertices[idx - 1]) for idx in triangle_indices]
-        intensity = get_light_intensity(face)
-        if intensity > 0:
-            draw_triangle(
-                *vertex_group, canvas=canvas, color=(int(intensity * 255),) * 3
-            )
+        if wireframe:
+            draw_triangle(*vertex_group, canvas=canvas, color="black", wireframe=True)
+        else:
+            intensity = get_light_intensity(face)
+            if intensity > 0:
+                draw_triangle(
+                    *vertex_group, canvas=canvas, color=(int(intensity * 255),) * 3
+                )
 
 
 def draw_with_z_buffer(screen_vertices, world_vertices, model, canvas):
@@ -465,5 +468,8 @@ def render(model, height, width, filename, wireframe=False):
     screen_vertices = [viewport(ndc(mvp(v))) for v in model.vertices]
 
     canvas = Canvas(height, width)
-    draw_with_z_buffer(screen_vertices, world_vertices, model, canvas)
+    if wireframe:
+        draw(screen_vertices, world_vertices, model, canvas)
+    else:
+        draw_with_z_buffer(screen_vertices, world_vertices, model, canvas)
     canvas.save(filename)
