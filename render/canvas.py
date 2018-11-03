@@ -8,7 +8,7 @@ class Canvas:
         self.height, self.width = height, width
         self.img = Image.new("RGB", (self.height, self.width))
 
-    def draw(self, dots, color: t.Union[tuple, str] = "white"):
+    def draw(self, dots, color: t.Union[tuple, str]):
         if isinstance(color, str):
             color = ImageColor.getrgb(color)
         if isinstance(dots, tuple):

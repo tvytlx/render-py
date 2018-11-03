@@ -6,6 +6,10 @@ import numpy as np
 from copy import deepcopy
 from .canvas import Canvas
 
+import speedup
+
+# TODO: replace numpy with cython
+
 # 2D part
 
 
@@ -245,6 +249,8 @@ def draw_polygon(*vertices):
 
 
 class Vec3d:
+    __slots__ = "x", "y", "z", "arr", "value"
+
     def __init__(self, *narr, value=None):
         if value is not None:
             self.value = value
@@ -257,6 +263,7 @@ class Vec3d:
             self.value = np.matrix(narr)
 
         self.x, self.y, self.z = self.value[0, 0], self.value[0, 1], self.value[0, 2]
+        self.arr = (self.x, self.y, self.z)
 
     def __repr__(self):
         return repr(self.value)
@@ -296,17 +303,16 @@ class Vec4d(Mat4d):
 
 # Math util
 def normalize(v):
-
     unit = math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
     return Vec3d(v.x / unit, v.y / unit, v.z / unit)
 
 
-def dot_product(x: Vec3d, y: Vec3d):
-    return x.x * y.x + x.y * y.y + x.z * y.z
+def dot_product(a: Vec3d, b: Vec3d):
+    return speedup.dot_product(a.arr, b.arr)
 
 
-def cross_product(x: Vec3d, y: Vec3d):
-    return Vec3d(*np.cross(x.value, y.value)[0])
+def cross_product(a: Vec3d, b: Vec3d):
+    return Vec3d(*speedup.cross_product(a.arr, b.arr))
 
 
 def get_light_intensity(face) -> tuple:
@@ -400,6 +406,42 @@ def perspective_project(r, t, n, f, b=None, l=None):  # noqa: E741
     )
 
 
+def draw(screen_vertices, world_vertices, model, canvas):
+    """standard algorithm
+    """
+    for triangle_indices in model.indices:
+        vertex_group = [screen_vertices[idx - 1] for idx in triangle_indices]
+        face = [Vec3d(world_vertices[idx - 1]) for idx in triangle_indices]
+        intensity = get_light_intensity(face)
+        if intensity > 0:
+            draw_triangle(
+                *vertex_group, canvas=canvas, color=(int(intensity * 255),) * 3
+            )
+
+
+def draw_with_z_buffer(screen_vertices, world_vertices, model, canvas):
+    """ z-buffer algorithm
+    """
+    colors = []
+    triangles = []
+    for triangle_indices in model.indices:
+        screen_vertices_of_triangle = [
+            screen_vertices[idx - 1] for idx in triangle_indices
+        ]
+        world_vertices_of_triangle = [
+            Vec3d(world_vertices[idx - 1]) for idx in triangle_indices
+        ]
+        intensity = get_light_intensity(world_vertices_of_triangle)
+        if intensity > 0:
+            # take of the class to let cython work
+            triangles.append([v.arr for v in screen_vertices_of_triangle])
+            # save the color message for each triangle face
+            colors.append((int(intensity * 255),) * 3)
+    faces = speedup.generate_faces_with_z_buffer(triangles, canvas.width)
+    for color, face_dots in zip(colors, faces):
+        canvas.draw(face_dots, color)
+
+
 def render(model, height, width, filename, wireframe=False):
     """
     Args:
@@ -439,18 +481,9 @@ def render(model, height, width, filename, wireframe=False):
             0.5 * (f - n) * v.z + 0.5 * (f + n),
         )
 
-    # this is the render pipeline
+    # the render pipeline
     screen_vertices = [viewport(ndc(mvp(v))) for v in model.vertices]
 
     canvas = Canvas(height, width)
-
-    for index_group in model.indices:
-        vertex_group = [Vec2d(screen_vertices[idx - 1]) for idx in index_group]
-        face = [Vec3d(world_vertices[i - 1]) for i in index_group]
-        intensity = get_light_intensity(face)
-        if intensity > 0:
-            draw_triangle(
-                *vertex_group, canvas=canvas, color=(int(intensity * 255),) * 3
-            )
-
+    draw_with_z_buffer(screen_vertices, world_vertices, model, canvas)
     canvas.save(filename)
