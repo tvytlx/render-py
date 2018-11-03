@@ -6,7 +6,7 @@ from PIL import Image, ImageColor
 class Canvas:
     def __init__(self, height=500, width=500):
         self.height, self.width = height, width
-        self.img = Image.new("RGB", (self.height, self.width))
+        self.img = Image.new("RGBA", (self.height, self.width), (0, 0, 0, 0))
 
     def draw(self, dots, color: t.Union[tuple, str]):
         if isinstance(color, str):
@@ -14,7 +14,7 @@ class Canvas:
         if isinstance(dots, tuple):
             dots = [dots]
         for dot in dots:
-            self.img.putpixel(dot, color)
+            self.img.putpixel(dot, color + (255,))
 
     def save(self, filename="test.png"):
         self.img.save(filename)
