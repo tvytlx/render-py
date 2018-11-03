@@ -412,14 +412,15 @@ def draw_with_z_buffer(screen_vertices, world_vertices, model, canvas):
             Vec3d(world_vertices[idx - 1]) for idx in triangle_indices
         ]
         intensity = get_light_intensity(world_vertices_of_triangle)
-        if intensity > 0:
-            # take of the class to let cython work
-            triangles.append([v.arr for v in screen_vertices_of_triangle])
-            # save the color message for each triangle face
-            colors.append((int(intensity * 255),) * 3)
+        # if intensity > 0:
+        # take of the class to let cython work
+        triangles.append([v.arr for v in screen_vertices_of_triangle])
+        # save the color message for each triangle face
+        colors.append((int(abs(intensity) * 200),) * 3)
     faces = speedup.generate_faces_with_z_buffer(triangles)
-    for color, face_dots in zip(colors, faces):
-        canvas.draw(face_dots, color)
+    for face_dots in faces:
+        for dot in face_dots:
+            canvas.draw((dot[0], dot[1]), colors[dot[2]])
 
 
 def render(model, height, width, filename, wireframe=False):

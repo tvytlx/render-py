@@ -22,7 +22,8 @@ def generate_faces_with_z_buffer(triangles):
     """
     faces = []
     zbuffer = {}
-    for a, b, c in triangles:
+    for i, face in enumerate(triangles):
+        a, b, c = face
         pixels = []
         res = sorted([a[0], b[0], c[0]])
         minx, maxx = res[0], res[-1] + 2
@@ -45,6 +46,6 @@ def generate_faces_with_z_buffer(triangles):
                 idx = ((x + y) * (x + y + 1) + y) / 2
                 if zbuffer.get(idx) is None or zbuffer[idx] < z:
                     zbuffer[idx] = z
-                    pixels.append((x, y))
+                    pixels.append((x, y, i))
         faces.append(pixels)
     return faces
