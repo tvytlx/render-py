@@ -6,7 +6,7 @@ import numpy as np
 from copy import deepcopy
 from .canvas import Canvas
 
-import speedup
+from render import speedup
 
 # TODO: replace numpy with cython
 
@@ -302,7 +302,7 @@ class Vec4d(Mat4d):
 
 
 # Math util
-def normalize(v):
+def normalize(v: Vec3d):
     unit = math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
     return Vec3d(v.x / unit, v.y / unit, v.z / unit)
 
@@ -319,26 +319,6 @@ def get_light_intensity(face) -> tuple:
     light = Vec3d(0, 5, -10)
     v1, v2, v3 = face
     return dot_product(normalize(cross_product(v2 - v1, v3 - v1)), normalize(light))
-
-
-class MatrixUtil:
-    """
-    后续可以把一些Python的算术运算都换成矩阵运算，因为numpy的矩阵运算比纯Python更快。
-    """
-
-    @classmethod
-    def translate(self, x, y, z) -> Mat4d:
-        m = [[1, 0, 0, x], [0, 1, 0, y], [0, 0, 1, z], [0, 0, 0, 1]]
-        return Mat4d(m)
-
-    @classmethod
-    def scale(self, x, y, z) -> Mat4d:
-        m = [[x, 0, 0, 0], [0, y, 0, 0], [0, 0, z, 0], [0, 0, 0, 1]]
-        return Mat4d(m)
-
-    @classmethod
-    def rotate(self, angle_in_degrees, Vec3d: Vec3d) -> Mat4d:
-        pass
 
 
 def look_at(eye: Vec3d, target: Vec3d, up: Vec3d = Vec3d(0, -1, 0)) -> Mat4d:
@@ -437,7 +417,7 @@ def draw_with_z_buffer(screen_vertices, world_vertices, model, canvas):
             triangles.append([v.arr for v in screen_vertices_of_triangle])
             # save the color message for each triangle face
             colors.append((int(intensity * 255),) * 3)
-    faces = speedup.generate_faces_with_z_buffer(triangles, canvas.width)
+    faces = speedup.generate_faces_with_z_buffer(triangles)
     for color, face_dots in zip(colors, faces):
         canvas.draw(face_dots, color)
 
@@ -471,14 +451,13 @@ def render(model, height, width, filename, wireframe=False):
         return Mat4d([[x], [y], [z], [1 / w]])
 
     def viewport(v):
-        v = Vec4d(value=v.value)
         x = y = 0
         w, h = width, height
         n, f = 0.3, 1000
         return Vec3d(
-            w * 0.5 * v.x + x + w * 0.5,
-            h * 0.5 * v.y + y + h * 0.5,
-            0.5 * (f - n) * v.z + 0.5 * (f + n),
+            w * 0.5 * v.value[0, 0] + x + w * 0.5,
+            h * 0.5 * v.value[1, 0] + y + h * 0.5,
+            0.5 * (f - n) * v.value[2, 0] + 0.5 * (f + n),
         )
 
     # the render pipeline
