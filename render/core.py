@@ -14,18 +14,16 @@ from render import speedup
 
 
 class Vec2d:
-    def __init__(self, *narr):
-        if len(narr) == 1 and isinstance(narr[0], Vec3d):
-            x, y = narr[0].x, narr[0].y
-        else:
-            assert len(narr) == 2
-            x, y = narr
+    __slots__ = "x", "y", "arr"
 
-        if isinstance(x, float):
-            x = int(x + 0.5)
-        if isinstance(y, float):
-            y = int(y + 0.5)
-        self.x, self.y = x, y
+    def __init__(self, *args):
+        if len(args) == 1 and isinstance(args[0], Vec3d):
+            self.arr = Vec3d.narr
+        else:
+            assert len(args) == 2
+            self.arr = list(args)
+
+        self.x, self.y = [d if isinstance(d, int) else int(d + 0.5) for d in self.arr]
 
     def __repr__(self):
         return f"Vec2d({self.x}, {self.y})"
@@ -61,7 +59,7 @@ def draw_line(
     incr = 1 if v1.y < v2.y else -1
     dots = []
     for x in range(int(v1.x), int(v2.x + 0.5)):
-        dots.append((int(y + 0.5), x) if steep else (x, int(y + 0.5)))
+        dots.append((y, x) if steep else (x, y))
         error += slope
         if abs(error) >= 0.5:
             y += incr
@@ -201,7 +199,7 @@ def draw_triangle(v1, v2, v3, canvas, color, wireframe=False):
         y = v1.y
 
         while y <= v2.y:
-            _draw_line(Vec2d(int(x1 + 0.5), y), Vec2d(int(x2 + 0.5), y))
+            _draw_line(Vec2d(x1, y), Vec2d(x2, y))
             x1 += invslope1
             x2 += invslope2
             y += 1
@@ -214,7 +212,7 @@ def draw_triangle(v1, v2, v3, canvas, color, wireframe=False):
         y = v3.y
 
         while y > v2.y:
-            _draw_line(Vec2d(int(x1 + 0.5), y), Vec2d(int(x2 + 0.5), y))
+            _draw_line(Vec2d(x1, y), Vec2d(x2, y))
             x1 -= invslope1
             x2 -= invslope2
             y -= 1
@@ -249,27 +247,24 @@ def draw_polygon(*vertices):
 
 
 class Vec3d:
-    __slots__ = "x", "y", "z", "arr", "value"
+    __slots__ = "x", "y", "z", "arr"
 
-    def __init__(self, *narr, value=None):
-        if value is not None:
-            self.value = value
+    def __init__(self, *args):
         # for Vec4d cast
-        elif len(narr) == 1 and isinstance(narr[0], Vec4d):
-            vec4 = narr[0]
-            self.value = np.matrix([vec4.x, vec4.y, vec4.z])
+        if len(args) == 1 and isinstance(args[0], Vec4d):
+            vec4 = args[0]
+            self.arr = vec4.arr[:3]
         else:
-            assert len(narr) == 3
-            self.value = np.matrix(narr)
+            assert len(args) == 3
+            self.arr = list(args)
 
-        self.x, self.y, self.z = self.value[0, 0], self.value[0, 1], self.value[0, 2]
-        self.arr = (self.x, self.y, self.z)
+        self.x, self.y, self.z = self.arr
 
     def __repr__(self):
-        return repr(self.value)
+        return repr(f"Vec3d({','.join(self.arr)})")
 
     def __sub__(self, other):
-        return self.__class__(value=self.value - other.value)
+        return self.__class__(*[ds - do for ds, do in zip(self.arr, other.arr)])
 
 
 class Mat4d:
@@ -299,6 +294,8 @@ class Vec4d(Mat4d):
             self.value[2, 0],
             self.value[3, 0],
         )
+        # refactor purpose
+        self.arr = [self.x, self.y, self.z, self.w]
 
 
 # Math util
@@ -332,7 +329,7 @@ def look_at(eye: Vec3d, target: Vec3d, up: Vec3d = Vec3d(0, -1, 0)) -> Mat4d:
             https://stackoverflow.com/questions/10635947/what-exactly-is-the-up-vector-in-opengls-lookat-function
             这里默认使用了 0, -1, 0， 因为 blender 导出来的模型数据似乎有问题，导致y轴总是反的，于是把摄像机的up也翻一下得了。
     """
-    f = normalize(Vec3d(value=eye.value - target.value))
+    f = normalize(eye - target)
     l = normalize(cross_product(up, f))  # noqa: E741
     u = cross_product(f, l)
 
