@@ -19,16 +19,16 @@ cdef (int, int) get_min_max(double a, double b, double c):
 
 
 @cython.boundscheck(False)
-cpdef dot_product(np.ndarray[np.float_t, ndim=1] a, np.ndarray[np.float_t, ndim=1] b):
-    cdef double r = a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+cpdef dot_product(double a0, double a1, double a2, double b0, double b1, double b2):
+    cdef double r = a0 * b0 + a1 * b1 + a2 * b2
     return r
 
 
 @cython.boundscheck(False)
-cpdef (double, double, double) cross_product(double v10, double v11, double v12, double v20, double v21, double v22):
-    cdef double x = v11 * v22 - v12 * v21
-    cdef double y = v12 * v20 - v10 * v22
-    cdef double z = v10 * v21 - v11 * v20
+cpdef (double, double, double) cross_product(double a0, double a1, double a2, double b0, double b1, double b2):
+    cdef double x = a1 * b2 - a2 * b1
+    cdef double y = a2 * b0 - a0 * b2
+    cdef double z = a0 * b1 - a1 * b0
     return x,y,z
 
 
