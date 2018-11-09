@@ -53,8 +53,8 @@ def generate_faces_with_z_buffer(double [:, :, :] triangles):
 
     https://github.com/ssloy/tinyrenderer/wiki/Lesson-3:-Hidden-faces-removal-(z-buffer)
     """
-    cdef int i = 0, length, x, y
-    cdef double z, bcy, bcz
+    cdef int i, j, k, length
+    cdef double bcy, bcz, x, y, z
     cdef double a[3], b[3], c[3], u[3], bc[3]
     cdef int minx, maxx, miny, maxy
     length = triangles.shape[0]
@@ -67,22 +67,31 @@ def generate_faces_with_z_buffer(double [:, :, :] triangles):
         minx, maxx = get_min_max(a[0], b[0], c[0])
         miny, maxy = get_min_max(a[1], b[1], c[1])
         pixels = []
-        for x in range(minx, maxx + 2):
-            for y in range(miny - 1, maxy + 2):
+        for j in range(minx, maxx + 2):
+            for k in range(miny - 1, maxy + 2):
+                # 必须转换成 double 参与底下的运算，不然算出来的结果是错的，这也太奇葩了吧
+                # 关键是我还不知道隐式的 cast 到底是在哪里出了问题
+                x = j
+                y = k
+
                 u[0], u[1], u[2] = cross_product(c[0] - a[0], b[0] - a[0], a[0] - x, c[1] - a[1], b[1] - a[1], a[1] - y)
                 if abs(u[2]) > 0:
-                    bcy, bcz = u[1] / u[2], u[0] / u[2]
+                    bcy = u[1] / u[2]
+                    bcz = u[0] / u[2]
                     bc = (1 - bcy - bcz, bcy, bcz)
                 else:
                     continue
+
                 # here, -0.00001 because of the precision lose
                 if bc[0] < -0.00001 or bc[1] < -0.00001 or bc[2] < -0.00001:
                     continue
+
                 z = a[2] * bc[0] + b[2] * bc[1] + c[2] * bc[2]
                 # https://en.wikipedia.org/wiki/Pairing_function
                 idx = ((x + y) * (x + y + 1) + y) / 2
                 if zbuffer.get(idx) is None or zbuffer[idx] < z:
                     zbuffer[idx] = z
-                    pixels.append((x, y, i))
+                    pixels.append((j, k, i))
+
         faces.append(pixels)
     return faces
