@@ -6,7 +6,7 @@ import numpy as np
 from copy import deepcopy
 from .canvas import Canvas
 
-from render import speedup
+import speedup
 
 # TODO: replace numpy with cython
 
@@ -253,15 +253,15 @@ class Vec3d:
         # for Vec4d cast
         if len(args) == 1 and isinstance(args[0], Vec4d):
             vec4 = args[0]
-            self.arr = vec4.arr[:3]
+            arr_value = (vec4.x, vec4.y, vec4.z)
         else:
             assert len(args) == 3
-            self.arr = list(args)
-
-        self.x, self.y, self.z = self.arr
+            arr_value = args
+        self.x, self.y, self.z = arr_value
+        self.arr = np.array(arr_value, dtype=np.float)
 
     def __repr__(self):
-        return repr(f"Vec3d({','.join(self.arr)})")
+        return repr(f"Vec3d({','.join([str(d) for d in self.arr])})")
 
     def __sub__(self, other):
         return self.__class__(*[ds - do for ds, do in zip(self.arr, other.arr)])
@@ -295,27 +295,35 @@ class Vec4d(Mat4d):
             self.value[3, 0],
         )
         # refactor purpose
-        self.arr = [self.x, self.y, self.z, self.w]
+        # use reshape
+        self.arr = self.value.reshape((1, 4))
 
 
 # Math util
 def normalize(v: Vec3d):
     unit = math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
+    if not unit:
+        return
     return Vec3d(v.x / unit, v.y / unit, v.z / unit)
 
 
 def dot_product(a: Vec3d, b: Vec3d):
-    return speedup.dot_product(a.arr, b.arr)
+    return speedup.dot_product(
+        np.array(a.arr, dtype=np.float), np.array(b.arr, dtype=np.float)
+    )
 
 
 def cross_product(a: Vec3d, b: Vec3d):
-    return Vec3d(*speedup.cross_product(a.arr, b.arr))
+    return Vec3d(*speedup.cross_product(*a.arr, *b.arr))
 
 
-def get_light_intensity(face) -> tuple:
+def get_light_intensity(face) -> float:
     light = Vec3d(-2, 4, -10)
     v1, v2, v3 = face
-    return dot_product(normalize(cross_product(v2 - v1, v3 - v1)), normalize(light))
+    up = normalize(cross_product(v2 - v1, v3 - v1))
+    if not up:
+        return 0
+    return dot_product(up, normalize(light))
 
 
 def look_at(eye: Vec3d, target: Vec3d, up: Vec3d = Vec3d(0, -1, 0)) -> Mat4d:
@@ -417,7 +425,7 @@ def draw_with_z_buffer(screen_vertices, world_vertices, model, canvas):
         triangles.append([v.arr for v in screen_vertices_of_triangle])
         # save the color message for each triangle face
         colors.append((int(abs(intensity) * 255),) * 3)
-    faces = speedup.generate_faces_with_z_buffer(triangles)
+    faces = speedup.generate_faces_with_z_buffer(np.array(triangles, dtype=np.float))
     for face_dots in faces:
         for dot in face_dots:
             canvas.draw((dot[0], dot[1]), colors[dot[2]])
