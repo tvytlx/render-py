@@ -308,9 +308,7 @@ def normalize(v: Vec3d):
 
 
 def dot_product(a: Vec3d, b: Vec3d):
-    return speedup.dot_product(
-        np.array(a.arr, dtype=np.float), np.array(b.arr, dtype=np.float)
-    )
+    return speedup.dot_product(*a.arr, *b.arr)
 
 
 def cross_product(a: Vec3d, b: Vec3d):
