@@ -31,7 +31,7 @@ cdef (int, int) get_min_max(double a, double b, double c):
 
 
 @cython.boundscheck(False)
-cpdef dot_product(double a0, double a1, double a2, double b0, double b1, double b2):
+cpdef double dot_product(double a0, double a1, double a2, double b0, double b1, double b2):
     cdef double r = a0 * b0 + a1 * b1 + a2 * b2
     return r
 
@@ -44,18 +44,7 @@ cpdef (double, double, double) cross_product(double a0, double a1, double a2, do
     return x,y,z
 
 
-cdef min_max(double a, double b, double c):
-    cdef double t
-    if a > b:
-        t = b
-        a = b
-        b = a
-    return (a,b,c)
-
-
-@cython.binding(True)
 @cython.boundscheck(False)
-#def generate_faces_with_z_buffer(np.ndarray[np.float_t, ndim=3] triangles):
 def generate_faces_with_z_buffer(double [:, :, :] triangles):
     """ draw the triangle faces with z buffer
 
