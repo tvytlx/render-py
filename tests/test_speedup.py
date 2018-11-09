@@ -2,6 +2,20 @@ import json
 from hashlib import md5
 
 
+def test_dot_product():
+    from render.speedup import dot_product
+
+    res = dot_product([1, 2, 3], [4, 4, 5])
+    assert res == 27
+
+
+def test_cross_product():
+    from render.speedup import cross_product
+
+    res = cross_product([1, 2, 3], [4, 4, 5])
+    assert res == (-2, 7, -4)
+
+
 def test_generate_faces_with_z_buffer(read_data):
     from render.speedup import generate_faces_with_z_buffer
 
