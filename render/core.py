@@ -261,7 +261,7 @@ class Vec3d:
         self.x, self.y, self.z = self.arr
 
     def __repr__(self):
-        return repr(f"Vec3d({','.join(self.arr)})")
+        return repr(f"Vec3d({','.join([repr(d) for d in self.arr])})")
 
     def __sub__(self, other):
         return self.__class__(*[ds - do for ds, do in zip(self.arr, other.arr)])
