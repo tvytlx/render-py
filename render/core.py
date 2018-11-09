@@ -257,14 +257,19 @@ class Vec3d:
         else:
             assert len(args) == 3
             arr_value = args
-        self.x, self.y, self.z = arr_value
         self.arr = np.array(arr_value, dtype=np.float)
+        self.x, self.y, self.z = self.arr
 
     def __repr__(self):
         return repr(f"Vec3d({','.join([repr(d) for d in self.arr])})")
 
     def __sub__(self, other):
         return self.__class__(*[ds - do for ds, do in zip(self.arr, other.arr)])
+
+    def __bool__(self):
+        """ False for zero vector (0, 0, 0)
+        """
+        return any(self.arr)
 
 
 class Mat4d:
