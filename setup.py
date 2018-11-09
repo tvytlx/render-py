@@ -1,4 +1,21 @@
-from distutils.core import setup
+# distutils: define_macros=CYTHON_TRACE_NOGIL=1
+import numpy
+
+from distutils.core import setup, Extension
 from Cython.Build import cythonize
 
-setup(ext_modules=cythonize("render/speedup.pyx"))
+extensions = [
+    Extension(
+        "speedup",
+        ["render/speedup.pyx"],
+        # define_macros=[("CYTHON_TRACE", "1")],
+        include_dirs=[numpy.get_include()],
+    )
+]
+setup(
+    ext_modules=cythonize(
+        extensions,
+        annotate=True,
+        compiler_directives={"linetrace": True, "binding": True},
+    )
+)
