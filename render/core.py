@@ -306,10 +306,7 @@ class Vec4d(Mat4d):
 
 # Math util
 def normalize(v: Vec3d):
-    unit = math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
-    if not unit:
-        return
-    return Vec3d(v.x / unit, v.y / unit, v.z / unit)
+    return Vec3d(*speedup.normalize(*v.arr))
 
 
 def dot_product(a: Vec3d, b: Vec3d):
@@ -324,8 +321,6 @@ def get_light_intensity(face) -> float:
     light = Vec3d(-2, 4, -10)
     v1, v2, v3 = face
     up = normalize(cross_product(v2 - v1, v3 - v1))
-    if not up:
-        return 0
     return dot_product(up, normalize(light))
 
 
@@ -423,11 +418,10 @@ def draw_with_z_buffer(screen_vertices, world_vertices, model, canvas):
             Vec3d(world_vertices[idx - 1]) for idx in triangle_indices
         ]
         intensity = get_light_intensity(world_vertices_of_triangle)
-        # if intensity > 0:
         # take of the class to let cython work
         triangles.append([v.arr for v in screen_vertices_of_triangle])
         # save the color message for each triangle face
-        colors.append((int(abs(intensity) * 255),) * 3)
+        colors.append((int((abs(intensity) * 255)),) * 3)
     faces = speedup.generate_faces_with_z_buffer(np.array(triangles, dtype=np.float))
     for face_dots in faces:
         for dot in face_dots:

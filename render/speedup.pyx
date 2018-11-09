@@ -3,6 +3,18 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
+
+cdef extern from "math.h":
+    double sqrt(double x)
+
+
+def normalize(double x, double y, double z):
+    cdef double unit = sqrt(x * x + y * y + z * z)
+    if unit == 0:
+        return 0, 0, 0
+    return x / unit, y / unit, z / unit
+
+
 cdef (int, int) get_min_max(double a, double b, double c):
     cdef double min = a
     cdef double max = a

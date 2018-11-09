@@ -10,6 +10,7 @@ extensions = [
         ["render/speedup.pyx"],
         # define_macros=[("CYTHON_TRACE", "1")],
         include_dirs=[numpy.get_include()],
+        libraries=["m"],
     )
 ]
 setup(
