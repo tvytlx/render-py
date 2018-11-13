@@ -1,4 +1,3 @@
-import math
 import typing as t
 from functools import partial
 
@@ -408,24 +407,35 @@ def draw(screen_vertices, world_vertices, model, canvas, wireframe=True):
 def draw_with_z_buffer(screen_vertices, world_vertices, model, canvas):
     """ z-buffer algorithm
     """
-    colors = []
+    intensities = []
     triangles = []
-    for triangle_indices in model.indices:
+    for i, triangle_indices in enumerate(model.indices):
         screen_vertices_of_triangle = [
             screen_vertices[idx - 1] for idx in triangle_indices
+        ]
+        uv_vertices_of_triangle = [
+            model.uv_vertices[idx - 1] for idx in model.uv_indices[i]
         ]
         world_vertices_of_triangle = [
             Vec3d(world_vertices[idx - 1]) for idx in triangle_indices
         ]
-        intensity = get_light_intensity(world_vertices_of_triangle)
+        intensities.append(abs(int(get_light_intensity(world_vertices_of_triangle))))
         # take of the class to let cython work
-        triangles.append([v.arr for v in screen_vertices_of_triangle])
-        # save the color message for each triangle face
-        colors.append((int((abs(intensity) * 255)),) * 3)
-    faces = speedup.generate_faces_with_z_buffer(np.array(triangles, dtype=np.float))
+        triangles.append(
+            [
+                np.append(screen_vertices_of_triangle[i].arr, uv_vertices_of_triangle[i])
+                for i in range(3)
+            ]
+        )
+    faces = speedup.generate_faces_with_z_buffer(
+        np.array(triangles, dtype=np.float), model.texture_width, model.texture_height
+    )
     for face_dots in faces:
         for dot in face_dots:
-            canvas.draw((dot[0], dot[1]), colors[dot[2]])
+            intensity = intensities[dot[0]]
+            u, v = dot[3], dot[4]
+            color = model.texture_array[u, v]
+            canvas.draw((dot[1], dot[2]), tuple(c * intensity for c in color[:3]))
 
 
 def render(model, height, width, filename, wireframe=False):
@@ -437,7 +447,7 @@ def render(model, height, width, filename, wireframe=False):
         picname: picture file name
     """
     model_matrix = Mat4d([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-    view_matrix = look_at(Vec3d(0, 0, 10), Vec3d(0, 0, 0))
+    view_matrix = look_at(Vec3d(-5, -5, 10), Vec3d(0, 0, 0))
     projection_matrix = perspective_project(0.5, 0.5, 3, 1000)
 
     world_vertices = []

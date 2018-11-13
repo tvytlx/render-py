@@ -45,7 +45,7 @@ cpdef (double, double, double) cross_product(double a0, double a1, double a2, do
 
 
 @cython.boundscheck(False)
-def generate_faces_with_z_buffer(double [:, :, :] triangles):
+def generate_faces_with_z_buffer(double [:, :, :] triangles, int width, int height):
     """ draw the triangle faces with z buffer
 
     Args:
@@ -55,7 +55,7 @@ def generate_faces_with_z_buffer(double [:, :, :] triangles):
     """
     cdef int i, j, k, length
     cdef double bcy, bcz, x, y, z
-    cdef double a[3], b[3], c[3], u[3], bc[3]
+    cdef double a[3], b[3], c[3], m[3], bc[3], uva[2], uvb[2], uvc[2]
     cdef int minx, maxx, miny, maxy
     length = triangles.shape[0]
     zbuffer = {}
@@ -64,6 +64,9 @@ def generate_faces_with_z_buffer(double [:, :, :] triangles):
         a = triangles[i, 0, 0], triangles[i, 0, 1], triangles[i, 0, 2]
         b = triangles[i, 1, 0], triangles[i, 1, 1], triangles[i, 1, 2]
         c = triangles[i, 2, 0], triangles[i, 2, 1], triangles[i, 2, 2]
+        uva = triangles[i, 0, 3], triangles[i, 0, 4]
+        uvb = triangles[i, 1, 3], triangles[i, 1, 4]
+        uvc = triangles[i, 2, 3], triangles[i, 2, 4]
         minx, maxx = get_min_max(a[0], b[0], c[0])
         miny, maxy = get_min_max(a[1], b[1], c[1])
         pixels = []
@@ -74,10 +77,10 @@ def generate_faces_with_z_buffer(double [:, :, :] triangles):
                 x = j
                 y = k
 
-                u[0], u[1], u[2] = cross_product(c[0] - a[0], b[0] - a[0], a[0] - x, c[1] - a[1], b[1] - a[1], a[1] - y)
-                if abs(u[2]) > 0:
-                    bcy = u[1] / u[2]
-                    bcz = u[0] / u[2]
+                m[0], m[1], m[2] = cross_product(c[0] - a[0], b[0] - a[0], a[0] - x, c[1] - a[1], b[1] - a[1], a[1] - y)
+                if abs(m[2]) > 0:
+                    bcy = m[1] / m[2]
+                    bcz = m[0] / m[2]
                     bc = (1 - bcy - bcz, bcy, bcz)
                 else:
                     continue
@@ -86,12 +89,15 @@ def generate_faces_with_z_buffer(double [:, :, :] triangles):
                 if bc[0] < -0.00001 or bc[1] < -0.00001 or bc[2] < -0.00001:
                     continue
 
-                z = a[2] * bc[0] + b[2] * bc[1] + c[2] * bc[2]
+                z = 1 / (bc[0] / a[2] + bc[1] / b[2] + bc[2] / c[2])
+                u = (uva[0] * bc[0] / a[2] + uvb[0] * bc[1] / b[2] + uvc[0] * bc[2] / c[2]) * z * width
+                v = (uva[1] * bc[0] / a[2] + uvb[1] * bc[1] / b[2] + uvc[1] * bc[2] / c[2]) * z * height
+
                 # https://en.wikipedia.org/wiki/Pairing_function
                 idx = ((x + y) * (x + y + 1) + y) / 2
                 if zbuffer.get(idx) is None or zbuffer[idx] < z:
                     zbuffer[idx] = z
-                    pixels.append((j, k, i))
+                    pixels.append((i, j, k, int(u) - 1, int(v) - 1))
 
         faces.append(pixels)
     return faces
