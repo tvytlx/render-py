@@ -419,7 +419,7 @@ def draw_with_z_buffer(screen_vertices, world_vertices, model, canvas):
         world_vertices_of_triangle = [
             Vec3d(world_vertices[idx - 1]) for idx in triangle_indices
         ]
-        intensities.append(abs(int(get_light_intensity(world_vertices_of_triangle))))
+        intensities.append(abs(get_light_intensity(world_vertices_of_triangle)))
         # take of the class to let cython work
         triangles.append(
             [
