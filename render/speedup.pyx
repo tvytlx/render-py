@@ -90,8 +90,11 @@ def generate_faces_with_z_buffer(double [:, :, :] triangles, int width, int heig
                     continue
 
                 z = 1 / (bc[0] / a[2] + bc[1] / b[2] + bc[2] / c[2])
-                u = (uva[0] * bc[0] / a[2] + uvb[0] * bc[1] / b[2] + uvc[0] * bc[2] / c[2]) * z * width
-                v = (uva[1] * bc[0] / a[2] + uvb[1] * bc[1] / b[2] + uvc[1] * bc[2] / c[2]) * z * height
+
+                # Blender 导出来的 uv 数据，跟之前的顶点数据有一样的问题，Y轴是个反的，
+                # 所以这里的纹理图片要旋转一下才能 work
+                v = (uva[0] * bc[0] / a[2] + uvb[0] * bc[1] / b[2] + uvc[0] * bc[2] / c[2]) * z * width
+                u = height - (uva[1] * bc[0] / a[2] + uvb[1] * bc[1] / b[2] + uvc[1] * bc[2] / c[2]) * z * height
 
                 # https://en.wikipedia.org/wiki/Pairing_function
                 idx = ((x + y) * (x + y + 1) + y) / 2
