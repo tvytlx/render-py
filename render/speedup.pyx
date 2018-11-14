@@ -51,7 +51,9 @@ def generate_faces_with_z_buffer(double [:, :, :] triangles, int width, int heig
     Args:
         triangles: groups of vertices
 
-    https://github.com/ssloy/tinyrenderer/wiki/Lesson-3:-Hidden-faces-removal-(z-buffer)
+    FYI:
+        * zbuffer, https://github.com/ssloy/tinyrenderer/wiki/Lesson-3:-Hidden-faces-removal-(z-buffer)
+        * uv mapping and perspective correction
     """
     cdef int i, j, k, length
     cdef double bcy, bcz, x, y, z
