@@ -58,7 +58,7 @@ def draw_line(
     incr = 1 if v1.y < v2.y else -1
     dots = []
     for x in range(int(v1.x), int(v2.x + 0.5)):
-        dots.append((y, x) if steep else (x, y))
+        dots.append((int(y), x) if steep else (x, int(y)))
         error += slope
         if abs(error) >= 0.5:
             y += incr
@@ -435,7 +435,7 @@ def draw_with_z_buffer(screen_vertices, world_vertices, model, canvas):
             intensity = intensities[dot[0]]
             u, v = dot[3], dot[4]
             color = model.texture_array[u, v]
-            canvas.draw((dot[1], dot[2]), tuple(c * intensity for c in color[:3]))
+            canvas.draw((dot[1], dot[2]), tuple(int(c * intensity) for c in color[:3]))
 
 
 def render(model, height, width, filename, wireframe=False):
