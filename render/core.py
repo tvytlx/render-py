@@ -7,7 +7,6 @@ from .canvas import Canvas
 
 import speedup
 
-# TODO: replace numpy with cython
 
 # 2D part
 
@@ -77,6 +76,7 @@ class Rect:
 
 def line_clipping_2d(v1, v2, rect):  # noqa: C901
     """
+        TODO:  目前模型如果scale的过大，渲染会报错，看看怎么利用裁剪解决这个问题。
         example:
         rect = Rect(200, 400, 200, 400)
 
@@ -436,6 +436,8 @@ def draw_with_z_buffer(screen_vertices, world_vertices, model, canvas):
             u, v = dot[3], dot[4]
             color = model.texture_array[u, v]
             canvas.draw((dot[1], dot[2]), tuple(int(c * intensity) for c in color[:3]))
+            # TODO: add object rendering mode (no texture)
+            # canvas.draw((dot[1], dot[2]), (int(255 * intensity),) * 3)
 
 
 def render(model, height, width, filename, wireframe=False):
@@ -447,7 +449,8 @@ def render(model, height, width, filename, wireframe=False):
         picname: picture file name
     """
     model_matrix = Mat4d([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-    view_matrix = look_at(Vec3d(-5, -5, 10), Vec3d(0, 0, 0))
+    # TODO: camera configration
+    view_matrix = look_at(Vec3d(-4, -4, 10), Vec3d(0, 0, 0))
     projection_matrix = perspective_project(0.5, 0.5, 3, 1000)
 
     world_vertices = []
