@@ -354,9 +354,8 @@ def render(model, height, width, filename, wireframe=False):
     # the render pipeline
     screen_vertices = [viewport(ndc(mvp(v))) for v in model.vertices]
 
-    canvas = Canvas(height, width)
-    if wireframe:
-        draw(screen_vertices, world_vertices, model, canvas)
-    else:
-        draw_with_z_buffer(screen_vertices, world_vertices, model, canvas)
-    canvas.save(filename)
+    with Canvas(filename, height, width) as canvas:
+        if wireframe:
+            draw(screen_vertices, world_vertices, model, canvas)
+        else:
+            draw_with_z_buffer(screen_vertices, world_vertices, model, canvas)

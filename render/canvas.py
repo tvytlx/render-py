@@ -4,7 +4,8 @@ from PIL import Image, ImageColor
 
 
 class Canvas:
-    def __init__(self, height=500, width=500):
+    def __init__(self, filename=None, height=500, width=500):
+        self.filename = filename
         self.height, self.width = height, width
         self.img = Image.new("RGBA", (self.height, self.width), (0, 0, 0, 0))
 
@@ -16,5 +17,8 @@ class Canvas:
         for dot in dots:
             self.img.putpixel(dot, color + (255,))
 
-    def save(self, filename="test.png"):
-        self.img.save(filename)
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.img.save(self.filename)
