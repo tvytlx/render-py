@@ -45,7 +45,7 @@ cpdef (double, double, double) cross_product(double a0, double a1, double a2, do
 
 
 @cython.boundscheck(False)
-def generate_faces_with_z_buffer(double [:, :, :] triangles, int width, int height):
+def generate_faces(double [:, :, :] triangles, int width, int height):
     """ draw the triangle faces with z buffer
 
     Args:
@@ -62,6 +62,7 @@ def generate_faces_with_z_buffer(double [:, :, :] triangles, int width, int heig
     length = triangles.shape[0]
     zbuffer = {}
     faces = []
+
     for i in range(length):
         a = triangles[i, 0, 0], triangles[i, 0, 1], triangles[i, 0, 2]
         b = triangles[i, 1, 0], triangles[i, 1, 1], triangles[i, 1, 2]

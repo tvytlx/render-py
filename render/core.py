@@ -66,113 +66,6 @@ def draw_line(
     canvas.draw(dots, color=color)
 
 
-class Rect:
-    def __init__(self, top, bottom, left, right):
-        self.top = top
-        self.bottom = bottom
-        self.left = left
-        self.right = right
-
-
-def line_clipping_2d(v1, v2, rect):  # noqa: C901
-    """
-        TODO:  目前模型如果scale的过大，渲染会报错，看看怎么利用裁剪解决这个问题。
-        example:
-        rect = Rect(200, 400, 200, 400)
-
-        https://blog.csdn.net/cppyin/article/details/6172457
-        https://en.wikipedia.org/wiki/Line_clipping
-    """
-
-    C = 0
-    W, E, S, N = [1 << i for i in range(4)]
-    NW = N | W
-    NE = N | E
-    SW = S | W
-    SE = S | E
-
-    def vcode(v: Vec2d) -> int:
-        code = 0
-        if v.y < rect.top:
-            code |= N
-        elif v.y > rect.bottom:
-            code |= S
-        if v.x < rect.left:
-            code |= W
-        elif v.x > rect.right:
-            code |= E
-        return code
-
-    code1 = vcode(v1)
-    code2 = vcode(v2)
-
-    # 完全被删除
-    if bool(code1 & code2):
-        return
-
-    # 完全被保留
-    if (code1 + code2) == 0:
-        return v1, v2
-
-    # 部分被删除
-    # 求 v1 与矩形的交点
-    def intersection_point(code, v1, v2):
-        if code == C:
-            return v1
-
-        if code in (N, NW, NE):
-            y = rect.top
-            x = (
-                int(v1.x + (rect.top - v1.y) * (v2.x - v1.x) / (v2.y - v1.y) + 0.5)
-                if v2.x != v1.x
-                else v2.x
-            )
-            if x < rect.left:
-                return intersection_point(W, v1, v2)
-            if x > rect.right:
-                return intersection_point(E, v1, v2)
-        elif code in (S, SW, SE):
-            y = rect.bottom
-            x = (
-                int(v1.x - (v1.y - rect.bottom) * (v2.x - v1.x) / (v2.y - v1.y) + 0.5)
-                if v2.x != v1.x
-                else v2.x
-            )
-            if x < rect.left:
-                return intersection_point(W, v1, v2)
-            if x > rect.right:
-                return intersection_point(E, v1, v2)
-        elif code == W:
-            if v1.x == v2.x:
-                return
-            x = rect.left
-            y = (
-                int(v1.y + (rect.left - v1.x) * (v1 / v2) + 0.5)
-                if v1.y != v2.y
-                else v1.y
-            )
-        elif code == E:
-            if v1.x == v2.x:
-                return
-            y = rect.right
-            x = (
-                int(v1.y - (v1.x - rect.right) * (v1 / v2) + 0.5)
-                if v1.y != v2.y
-                else v1.y
-            )
-
-        # 交点在矩形边框的直线延长线上的情况
-        if x < rect.left or x > rect.right or y < rect.top or y > rect.bottom:
-            return
-
-        return Vec2d(x, y)
-
-    nv1 = intersection_point(code1, v1, v2)
-    nv2 = intersection_point(code2, v2, v1)
-    if nv1 and nv2:
-        return nv1, nv2
-
-
 def draw_triangle(v1, v2, v3, canvas, color, wireframe=False):
     """
     Draw a triangle with 3 ordered vertices
@@ -231,17 +124,6 @@ def draw_triangle(v1, v2, v3, canvas, color, wireframe=False):
         fill_top_flat_triangle(v2, v4, v3)
 
 
-def draw_polygon(*vertices):
-    """
-    似乎没用到，不实现了
-
-    http://www.sunshine2k.de/coding/java/Polygon/Kong/Kong.html
-    https://en.wikipedia.org/wiki/Polygon_triangulation#Subtracting_ears_method
-    http://www.cs.uu.nl/docs/vakken/ga/slides9alt.pdf
-    """
-    pass
-
-
 # 3D part
 
 
@@ -298,8 +180,6 @@ class Vec4d(Mat4d):
             self.value[2, 0],
             self.value[3, 0],
         )
-        # refactor purpose
-        # use reshape
         self.arr = self.value.reshape((1, 4))
 
 
@@ -410,24 +290,16 @@ def draw_with_z_buffer(screen_vertices, world_vertices, model, canvas):
     intensities = []
     triangles = []
     for i, triangle_indices in enumerate(model.indices):
-        screen_vertices_of_triangle = [
-            screen_vertices[idx - 1] for idx in triangle_indices
-        ]
-        uv_vertices_of_triangle = [
-            model.uv_vertices[idx - 1] for idx in model.uv_indices[i]
-        ]
-        world_vertices_of_triangle = [
-            Vec3d(world_vertices[idx - 1]) for idx in triangle_indices
-        ]
-        intensities.append(abs(get_light_intensity(world_vertices_of_triangle)))
-        # take of the class to let cython work
+        screen_triangle = [screen_vertices[idx - 1] for idx in triangle_indices]
+        uv_triangle = [model.uv_vertices[idx - 1] for idx in model.uv_indices[i]]
+        world_triangle = [Vec3d(world_vertices[idx - 1]) for idx in triangle_indices]
+        intensities.append(abs(get_light_intensity(world_triangle)))
+        # take off the class to let Cython work
         triangles.append(
-            [
-                np.append(screen_vertices_of_triangle[i].arr, uv_vertices_of_triangle[i])
-                for i in range(3)
-            ]
+            [np.append(screen_triangle[i].arr, uv_triangle[i]) for i in range(3)]
         )
-    faces = speedup.generate_faces_with_z_buffer(
+
+    faces = speedup.generate_faces(
         np.array(triangles, dtype=np.float), model.texture_width, model.texture_height
     )
     for face_dots in faces:
