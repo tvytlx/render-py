@@ -1,5 +1,6 @@
 import json
 import os
+import subprocess
 
 import pytest
 
@@ -14,3 +15,8 @@ def read_data():
             return json.load(f)
 
     return wrapper
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cython_setup():
+    subprocess.call("python setup.py build_ext --inplace ", shell=True)

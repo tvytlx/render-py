@@ -18,11 +18,11 @@ def test_cross_product():
     assert res == (-2, 7, -4)
 
 
-def test_generate_faces_with_z_buffer(read_data):
-    from speedup import generate_faces_with_z_buffer
+def test_generate_faces(read_data):
+    from speedup import generate_faces
 
     data = read_data("triangles.json")
-    res = generate_faces_with_z_buffer(np.array(data))
+    res = generate_faces(np.array(data), 320, 320)
     return (
         md5(json.dumps(res).encode()).hexdigest() == "1e0be2a10306b053e8a41dc3c593399e"
     )
