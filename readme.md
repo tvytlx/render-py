@@ -14,16 +14,9 @@ A software 3D renderer written in Python that aims to make it easy for everyone 
 
 ### Example:
 
-```python
-from render import render, Model
-
-# the .obj file is exported from Blender.
-render(
-    Model("res/jinx.obj", texture_filename="res/jinx.tga"),
-    height=4000,
-    width=4000,
-    filename="jinx.png"
-)
+```
+$ pip install -r requirements.txt
+$ python setup.py build_ext --inplace && python try.py
 ```
 
 ### Contribute:
