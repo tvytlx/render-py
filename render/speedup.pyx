@@ -75,8 +75,7 @@ def generate_faces(double [:, :, :] triangles, int width, int height):
         pixels = []
         for j in range(minx, maxx + 2):
             for k in range(miny - 1, maxy + 2):
-                # 必须转换成 double 参与底下的运算，不然算出来的结果是错的，这也太奇葩了吧
-                # 关键是我还不知道隐式的 cast 到底是在哪里出了问题
+                # 必须显式转换成 double 参与底下的运算，不然结果是错的
                 x = j
                 y = k
 
