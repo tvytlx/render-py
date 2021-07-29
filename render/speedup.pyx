@@ -57,7 +57,7 @@ def generate_faces(double [:, :, :] triangles, int width, int height):
     """
     cdef int i, j, k, length
     cdef double bcy, bcz, x, y, z
-    cdef double a[3], b[3], c[3], m[3], bc[3], uva[2], uvb[2], uvc[2]
+    cdef double a[3], b[3], c[3], m[3], bc[3], uva[2], uvb[2], uvc[2], na[3], nb[3], nc[3]
     cdef int minx, maxx, miny, maxy
     length = triangles.shape[0]
     zbuffer = {}
@@ -70,6 +70,10 @@ def generate_faces(double [:, :, :] triangles, int width, int height):
         uva = triangles[i, 0, 3], triangles[i, 0, 4]
         uvb = triangles[i, 1, 3], triangles[i, 1, 4]
         uvc = triangles[i, 2, 3], triangles[i, 2, 4]
+        na = triangles[i, 0, 5], triangles[i, 0, 6], triangles[i, 0, 7]
+        nb = triangles[i, 1, 5], triangles[i, 1, 6], triangles[i, 1, 7]
+        nc = triangles[i, 2, 5], triangles[i, 2, 6], triangles[i, 2, 7]
+
         minx, maxx = get_min_max(a[0], b[0], c[0])
         miny, maxy = get_min_max(a[1], b[1], c[1])
         pixels = []
@@ -98,11 +102,16 @@ def generate_faces(double [:, :, :] triangles, int width, int height):
                 v = (uva[0] * bc[0] / a[2] + uvb[0] * bc[1] / b[2] + uvc[0] * bc[2] / c[2]) * z * width
                 u = height - (uva[1] * bc[0] / a[2] + uvb[1] * bc[1] / b[2] + uvc[1] * bc[2] / c[2]) * z * height
 
+                nx = (na[0] * bc[0] + nb[0] * bc[1] + nc[0] * bc[2])
+                ny = (na[1] * bc[0] + nb[1] * bc[1] + nc[1] * bc[2])
+                nz = (na[2] * bc[0] + nb[2] * bc[1] + nc[2] * bc[2])
+                nx, ny, nz = normalize(nx, ny, nz)
+
                 # https://en.wikipedia.org/wiki/Pairing_function
                 idx = ((x + y) * (x + y + 1) + y) / 2
                 if zbuffer.get(idx) is None or zbuffer[idx] < z:
                     zbuffer[idx] = z
-                    pixels.append((i, j, k, int(u) - 1, int(v) - 1))
+                    pixels.append((i, j, k, int(u) - 1, int(v) - 1, nx, ny, nz))
 
         faces.append(pixels)
     return faces

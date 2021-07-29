@@ -202,6 +202,9 @@ def get_light_intensity(face) -> float:
     up = normalize(cross_product(v2 - v1, v3 - v1))
     return dot_product(up, normalize(light))
 
+normalize_light_in_world = normalize(Vec3d(-2, 4, -10))
+def get_light_intensity_with_normal(n: Vec3d) -> float:
+    return dot_product(n, normalize_light_in_world)
 
 def look_at(eye: Vec3d, target: Vec3d, up: Vec3d = Vec3d(0, -1, 0)) -> Mat4d:
     """
@@ -292,11 +295,12 @@ def draw_with_z_buffer(screen_vertices, world_vertices, model, canvas):
     for i, triangle_indices in enumerate(model.indices):
         screen_triangle = [screen_vertices[idx - 1] for idx in triangle_indices]
         uv_triangle = [model.uv_vertices[idx - 1] for idx in model.uv_indices[i]]
+        n_triangle = [model.n_vertices[idx - 1] for idx in model.n_indices[i]]
         world_triangle = [Vec3d(world_vertices[idx - 1]) for idx in triangle_indices]
-        intensities.append(abs(get_light_intensity(world_triangle)))
         # take off the class to let Cython work
+        uv_n_triangle = [uv_triangle[i] + n_triangle[i] for i in range(3)]
         triangles.append(
-            [np.append(screen_triangle[i].arr, uv_triangle[i]) for i in range(3)]
+            [np.append(screen_triangle[i].arr, uv_n_triangle[i]) for i in range(3)]
         )
 
     faces = speedup.generate_faces(
@@ -304,10 +308,12 @@ def draw_with_z_buffer(screen_vertices, world_vertices, model, canvas):
     )
     for face_dots in faces:
         for dot in face_dots:
-            intensity = intensities[dot[0]]
             u, v = dot[3], dot[4]
+            nx, ny, nz = dot[5], dot[6], dot[7]
+            # Calculate lighting in world space, otherwise we need to mutiply normal matirx here.
+            n = Vec3d(nx, ny, nz)
             color = model.texture_array[u, v]
-            canvas.draw((dot[1], dot[2]), tuple(int(c * intensity) for c in color[:3]))
+            canvas.draw((dot[1], dot[2]), tuple(int(c * get_light_intensity_with_normal(n)) for c in color[:3]))
             # TODO: add object rendering mode (no texture)
             # canvas.draw((dot[1], dot[2]), (int(255 * intensity),) * 3)
 
