@@ -12,6 +12,8 @@ class Model:
         self.uv_vertices = []
         self.uv_indices = []
         self.indices = []
+        self.n_vertices = []
+        self.n_indices = []
 
         texture = Image.open(texture_filename)
         self.texture_array = numpy.array(texture)
@@ -25,7 +27,11 @@ class Model:
                 elif line.startswith("vt "):
                     u, v = [float(d) for d in line.strip("vt").strip().split(" ")]
                     self.uv_vertices.append([u, v])
+                elif line.startswith("vn "):
+                    nx, ny, nz = [float(d) for d in line.strip("vn").strip().split(" ")]
+                    self.n_vertices.append([nx, ny, nz])
                 elif line.startswith("f "):
                     facet = [d.split("/") for d in line.strip("f").strip().split(" ")]
                     self.indices.append([int(d[0]) for d in facet])
                     self.uv_indices.append([int(d[1]) for d in facet])
+                    self.n_indices.append([int(d[2]) for d in facet])
